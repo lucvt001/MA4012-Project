@@ -18,15 +18,20 @@ int classify_object()
 }
 
 // Action to collect ball
-void collect_ball()
+void start_ball_collector()
 {
-  return;
+  motor[collectorServo] = 127;
+}
+
+void stop_ball_collector()
+{
+  motor[collectorServo] = 0;
 }
 
 // Action to drop ball in deposit area
 void deposit_ball()
 {
-  return;
+  motor[collectorServo] = -127;
 }
 
 // Action to align to deposit area using compass
