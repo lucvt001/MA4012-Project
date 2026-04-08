@@ -4,7 +4,7 @@
 void move(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = dir * (speed + 6);
+  motor[rightMotor] = dir * (speed + 2);
 }
 
 // Rotate left/rigth
@@ -13,13 +13,7 @@ void move(int speed, int dir)
 void rotate(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = -dir * (speed + 6);
-}
-
-// Return an int corresponding to the index of one of the 8 directions
-int read_compass()
-{
-  return 0;
+  motor[rightMotor] = -dir * (speed + 2);
 }
 
 // Return 8-bit bitmask representing line detection zones
