@@ -20,7 +20,7 @@ int classify_object()
 // Action to collect ball
 void start_ball_collector()
 {
-  motor[collectorServo] = 127;
+  motor[collectorServo] = 200;
 }
 
 void stop_ball_collector()
@@ -29,9 +29,18 @@ void stop_ball_collector()
 }
 
 // Action to drop ball in deposit area
-void deposit_ball()
+void open_ball_release()
 {
-  motor[collectorServo] = -127;
+  motor[releaseServo] = 127;
+  wait1Msec(150); // Wait for the ball to be released before stopping the release mechanism
+  motor[releaseServo] = 0;
+}
+
+void close_ball_release()
+{
+  motor[releaseServo] = -127;
+  wait1Msec(150); // Wait for the release mechanism to reset before stopping it
+  motor[releaseServo] = 0;
 }
 
 // Action to align to deposit area using compass

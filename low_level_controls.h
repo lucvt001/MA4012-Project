@@ -4,7 +4,7 @@
 void move(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = dir * (speed + 3);
+  motor[rightMotor] = dir * (speed + 6);
 }
 
 // Rotate left/rigth
@@ -13,7 +13,7 @@ void move(int speed, int dir)
 void rotate(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = -dir * speed;
+  motor[rightMotor] = -dir * (speed + 6);
 }
 
 // Return an int corresponding to the index of one of the 8 directions
@@ -35,17 +35,27 @@ int detect_line()
   return 0;
 }
 
-bool is_ball_detected()
+int is_ball_detected()
 {
-  int threshold = 500; 
-  return (SensorValue(distanceSensor1) > threshold && SensorValue(distanceSensor2) < threshold)
-        || (SensorValue(distanceSensor1) < threshold && SensorValue(distanceSensor2) > threshold);  // Threshold value for ball detection
+  int threshold = 500;
+  int result = 0;
+  int reading1 = SensorValue(distanceSensor1);
+  int reading2 = SensorValue(distanceSensor2);
+
+  if (reading1 > threshold && reading2 < threshold)
+    result = -1; // Ball detected by distanceSensor1
+  else if (reading1 < threshold && reading2 > threshold)
+    result = 1; // Ball detected by distanceSensor2
+
+  return result;
 }
 
 bool are_both_distance_sensors_positive()
 {
   int threshold = 300;
-  return SensorValue(distanceSensor1) > threshold && SensorValue(distanceSensor2) > threshold;  // Threshold value for ball collection confirmation
+  int reading1 = SensorValue(distanceSensor1);
+  int reading2 = SensorValue(distanceSensor2);
+  return reading1 > threshold && reading2 > threshold;  // Threshold value for ball collection confirmation
 }
 
 // Return true if collected, false otherwise
