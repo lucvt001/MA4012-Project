@@ -20,6 +20,7 @@
 
 const int ACCELERATION_STEP = 1;  // Incremental step for speed changes
 const int MAX_BALLS = 1;
+State prevState = IDLE;
 
 // Where we stopped: in the collecting phase. need to go forward and start collecting
 
@@ -36,7 +37,7 @@ task main()
   int current_speed = 0;
   int target_speed = 0;
 
-  int forward_duration = 2000;
+  int forward_duration = 1700;
   int turn_speed = 20; // Speed for turning in place
 
   int current_heading = 135;
@@ -85,12 +86,13 @@ task main()
           break;
         }
 
-        // if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
-        // {
-        //   current_state = RECOVERY_FROM_BOUNDARY;
-        //   timer_started = false;  // Reset timer for next use
-        //   break;
-        // }
+        if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
+        {
+          current_state = RECOVERY_FROM_BOUNDARY;
+          prevState = APPROACHING_TARGET_AREA;
+          timer_started = false;  // Reset timer for next use
+          break;
+        }
 
         if (!timer_started)
         {
@@ -195,7 +197,7 @@ task main()
           move(current_speed, 1);
         }
 
-        if (time1[T1] >= 3000 || SensorValue(ballTriggerSwitch) == 0)
+        if (time1[T1] >= 2000 || SensorValue(ballTriggerSwitch) == 0)
         {
           timer_started = false;  // Reset timer for next use
           current_speed = 0;
@@ -204,6 +206,15 @@ task main()
             stop_ball_collector();
           current_state = NAVIGATING_TO_DEPOSIT;  // For testing, directly move to navigating state
         }
+
+        if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
+        {
+          current_state = RECOVERY_FROM_BOUNDARY;
+          prevState = COLLECTING;
+          //timer_started = false;  // Reset timer for next use
+          break;
+        }
+
         break;
 
       /*
@@ -217,7 +228,7 @@ task main()
         {
           // Rotate in the direction of the smaller angle
           int rotation_direction = (heading_difference_from_playground > 0) ? 1 : -1;
-          rotate(turn_speed, rotation_direction);
+          rotate(turn_speed/2, rotation_direction);
           break;
         }
         else
@@ -225,9 +236,17 @@ task main()
           wait1Msec(100); // Small delay to allow for any physical rotation to complete
         }
         
-        if (SensorValue(back_right) != 0 || SensorValue(back_left) != 0)
+        if (SensorValue(back_right) != 0 && SensorValue(back_left) != 0)
         {
           move(100, -1); // Move backwards
+        }
+        else if(SensorValue(back_right) == 0 && SensorValue(back_left) != 0)
+        {
+          rotate(turn_speed/3, 1); // Rotate right
+        }
+        else if(SensorValue(back_right) != 0 && SensorValue(back_left) == 0)
+        {
+          rotate(turn_speed/3, -1); // Rotate left
         }
         else
         {
@@ -287,7 +306,8 @@ task main()
             move(0, 0); // Stop movement
             wait1Msec(100); // Small delay to allow for any physical rotation to complete
           }
-          current_state = APPROACHING_TARGET_AREA; // Return to approaching state to try again
+          current_state = prevState; // Return to the previous state to try again
+          prevState = IDLE; // Reset prevState to default
         }
         break;
 
