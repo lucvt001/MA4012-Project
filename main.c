@@ -47,8 +47,6 @@ task main()
   int search_bias = -1; // 1 for right first, -1 for left first
   int current_search_direction = 0;
 
-  bool estop_debounce_active = false;
-
   while (true)
   {
     switch (current_state)
