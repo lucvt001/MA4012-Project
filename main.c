@@ -1,7 +1,8 @@
 #pragma config(Sensor, in7,    distanceSensorLeft, sensorAnalog)
 #pragma config(Sensor, in8,    distanceSensorRight, sensorAnalog)
-#pragma config(Sensor, dgtl1,  startingSwitch, sensorDigitalIn)
-#pragma config(Sensor, dgtl2,  ballTriggerSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl1,  rightBiasedStartSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl2,  leftBiasedStartSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl3,  ballTriggerSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl4,  northPin,          sensorDigitalIn)
 #pragma config(Sensor, dgtl5,  eastPin,           sensorDigitalIn)
 #pragma config(Sensor, dgtl6,  southPin,          sensorDigitalIn)
@@ -57,8 +58,14 @@ task main()
        * Possible state changes: APPROACHING_TARGET_AREA
        */
       case IDLE:
-        if (SensorValue(startingSwitch) == 0)  // Assuming starting switch is pressed to start the process
+        if (SensorValue(leftBiasedStartSwitch) == 0)
         {
+          search_bias = -1; // Start searching to the left first
+          current_state = APPROACHING_TARGET_AREA;
+        }
+        else if (SensorValue(rightBiasedStartSwitch) == 0)  // Assuming starting switch is pressed to start the process
+        {
+          search_bias = 1; // Start searching to the right first
           current_state = APPROACHING_TARGET_AREA;
         }
         break;
