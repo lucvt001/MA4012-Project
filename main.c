@@ -21,7 +21,6 @@
 
 const int ACCELERATION_STEP = 1;  // Incremental step for speed changes
 const int MAX_BALLS = 1;
-State prevState = IDLE;
 
 // Where we stopped: in the collecting phase. need to go forward and start collecting
 
@@ -30,12 +29,10 @@ task main()
   int ball_picked_count = 0;
 
   State current_state = IDLE;
+  State prev_state = IDLE;
   bool timer_started = false;
 
-  /*
-   * Note that speed values are always >=0. 'Negative speed' is accounted for by the direction.
-   */
-  int current_speed = 0;
+  int current_speed = 0;  // Note that speed values are always >=0. 'Negative speed' is accounted for by the direction.
   int target_speed = 0;
 
   int forward_duration = 1700;
@@ -94,7 +91,7 @@ task main()
         if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
         {
           current_state = RECOVERY_FROM_BOUNDARY;
-          prevState = APPROACHING_TARGET_AREA;
+          prev_state = APPROACHING_TARGET_AREA;
           timer_started = false;  // Reset timer for next use
           break;
         }
@@ -215,7 +212,7 @@ task main()
         if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
         {
           current_state = RECOVERY_FROM_BOUNDARY;
-          prevState = COLLECTING;
+          prev_state = COLLECTING;
           //timer_started = false;  // Reset timer for next use
           break;
         }
@@ -311,8 +308,8 @@ task main()
             move(0, 0); // Stop movement
             wait1Msec(100); // Small delay to allow for any physical rotation to complete
           }
-          current_state = prevState; // Return to the previous state to try again
-          prevState = IDLE; // Reset prevState to default
+          current_state = prev_state; // Return to the previous state to try again
+          prev_state = IDLE; // Reset prev_state to default
         }
         break;
 
