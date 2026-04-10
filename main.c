@@ -1,7 +1,8 @@
-#pragma config(Sensor, in7,    distanceSensor1, sensorAnalog)
-#pragma config(Sensor, in8,    distanceSensor2, sensorAnalog)
-#pragma config(Sensor, dgtl1,  startingSwitch, sensorDigitalIn)
-#pragma config(Sensor, dgtl2,  ballTriggerSwitch, sensorDigitalIn)
+#pragma config(Sensor, in7,    distanceSensorLeft, sensorAnalog)
+#pragma config(Sensor, in6,    distanceSensorRight, sensorAnalog)
+#pragma config(Sensor, dgtl1,  leftBiasedStartSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl2,  rightBiasedStartSwitch, sensorDigitalIn)
+#pragma config(Sensor, dgtl3,  ballTriggerSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl4,  northPin,          sensorDigitalIn)
 #pragma config(Sensor, dgtl5,  eastPin,           sensorDigitalIn)
 #pragma config(Sensor, dgtl6,  southPin,          sensorDigitalIn)
@@ -20,7 +21,6 @@
 
 const int ACCELERATION_STEP = 1;  // Incremental step for speed changes
 const int MAX_BALLS = 1;
-State prevState = IDLE;
 
 // Where we stopped: in the collecting phase. need to go forward and start collecting
 
@@ -29,24 +29,20 @@ task main()
   int ball_picked_count = 0;
 
   State current_state = IDLE;
+  State prev_state = IDLE;
   bool timer_started = false;
 
-  /*
-   * Note that speed values are always >=0. 'Negative speed' is accounted for by the direction.
-   */
-  int current_speed = 0;
+  int current_speed = 0;  // Note that speed values are always >=0. 'Negative speed' is accounted for by the direction.
   int target_speed = 0;
 
-  int forward_duration = 1700;
+  int forward_duration = 2000;
   int turn_speed = 20; // Speed for turning in place
 
-  int current_heading = 135;
-  int playground_heading = 135;
+  int current_heading = 180;
+  int playground_heading = 180;
 
   int search_bias = -1; // 1 for right first, -1 for left first
   int current_search_direction = 0;
-
-  bool estop_debounce_active = false;
 
   while (true)
   {
@@ -57,8 +53,15 @@ task main()
        * Possible state changes: APPROACHING_TARGET_AREA
        */
       case IDLE:
-        if (SensorValue(startingSwitch) == 0)  // Assuming starting switch is pressed to start the process
+        // current_heading = get_current_heading();
+        if (SensorValue(leftBiasedStartSwitch) == 0)
         {
+          search_bias = -1; // Start searching to the left first
+          current_state = APPROACHING_TARGET_AREA;
+        }
+        else if (SensorValue(rightBiasedStartSwitch) == 0)  // Assuming starting switch is pressed to start the process
+        {
+          search_bias = 1; // Start searching to the right first
           current_state = APPROACHING_TARGET_AREA;
         }
         break;
@@ -89,7 +92,7 @@ task main()
         if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
         {
           current_state = RECOVERY_FROM_BOUNDARY;
-          prevState = APPROACHING_TARGET_AREA;
+          prev_state = APPROACHING_TARGET_AREA;
           timer_started = false;  // Reset timer for next use
           break;
         }
@@ -127,13 +130,13 @@ task main()
         {
           if (is_ball_detected() == -1)
           {
-            rotate(turn_speed, -1);
-            wait1Msec(300);
+            rotate(15, -1);
+            wait1Msec(70);
           }
           else if (is_ball_detected() == 1)
           {
-            rotate(turn_speed, 1);
-            wait1Msec(300);
+            rotate(15, 1);
+            wait1Msec(70);
           }
           timer_started = false;  // Reset timer for next use
           rotate(0, 0);
@@ -197,21 +200,32 @@ task main()
           move(current_speed, 1);
         }
 
-        if (time1[T1] >= 2000 || SensorValue(ballTriggerSwitch) == 0)
+        if (SensorValue(ballTriggerSwitch) == 0)
         {
           timer_started = false;  // Reset timer for next use
           current_speed = 0;
           move(current_speed, 0);
-          if (SensorValue(ballTriggerSwitch) == 0)
-            stop_ball_collector();
+          stop_ball_collector();
           current_state = NAVIGATING_TO_DEPOSIT;  // For testing, directly move to navigating state
+          break;
+        }
+
+        if (time1[T1] >= 4000) // If taking too long to collect the ball, stop and try again
+        {
+          timer_started = false;  // Reset timer for next use
+          current_speed = 0;
+          move(current_speed, 0);
+          // stop_ball_collector();
+          current_state = SEARCHING; // Return to approaching state to try again
+          break;
         }
 
         if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
         {
           current_state = RECOVERY_FROM_BOUNDARY;
-          prevState = COLLECTING;
-          //timer_started = false;  // Reset timer for next use
+          prev_state = COLLECTING;
+          timer_started = false;  // Reset timer for next use
+          // stop_ball_collector();
           break;
         }
 
@@ -222,31 +236,39 @@ task main()
        * Possible state changes: DEPOSITING
        */
       case NAVIGATING_TO_DEPOSIT:
-        int heading_difference_from_playground = (playground_heading - get_current_heading() + 180) % 360 - 180; // Calculate difference and normalize to [-180, 180]        
+        if (SensorValue(ballTriggerSwitch) == 0)
+          stop_ball_collector();
 
+        current_heading = get_current_heading();
+        if (current_heading == -1) {
+          current_heading = playground_heading; // If heading is invalid, assume we're facing the playground direction
+          rotate(0, 0);
+          break;
+        }
+
+        int heading_difference_from_playground = (playground_heading - current_heading + 180) % 360 - 180; // Calculate difference and normalize to [-180, 180]
         if (heading_difference_from_playground != 0)
         {
           // Rotate in the direction of the smaller angle
           int rotation_direction = (heading_difference_from_playground > 0) ? 1 : -1;
-          rotate(turn_speed/2, rotation_direction);
-          break;
+          rotate(35, rotation_direction);
         }
         else
         {
-          wait1Msec(100); // Small delay to allow for any physical rotation to complete
+          rotate(0, 0); // Stop rotation if we're within the acceptable heading range
         }
-        
+
         if (SensorValue(back_right) != 0 && SensorValue(back_left) != 0)
         {
           move(100, -1); // Move backwards
         }
         else if(SensorValue(back_right) == 0 && SensorValue(back_left) != 0)
         {
-          rotate(turn_speed/3, 1); // Rotate right
+          rotate(turn_speed, 1); // Rotate right
         }
         else if(SensorValue(back_right) != 0 && SensorValue(back_left) == 0)
         {
-          rotate(turn_speed/3, -1); // Rotate left
+          rotate(turn_speed, -1); // Rotate left
         }
         else
         {
@@ -281,7 +303,7 @@ task main()
           {
             current_state = APPROACHING_TARGET_AREA;  // Move to next ball
           }
-        }      
+        }
         break;
 
       case RECOVERY_FROM_BOUNDARY:
@@ -289,25 +311,14 @@ task main()
         {
           clearTimer(T1);
           timer_started = true;
-          move(-100, -1); // Move backwards to get away from the boundary
+          move(70, -1); // Move backwards to get away from the boundary
         }
-        else if (time1[T1] >= 2000) // Move backwards for second
+
+        if (time1[T1] >= 1000) // Move backwards for second
         {
-          int heading_difference_from_playground = (playground_heading - get_current_heading() + 180) % 360 - 180; // Calculate difference and normalize to [-180, 180]        
-          if (heading_difference_from_playground != 0)
-          {
-            // Rotate in the direction of the smaller angle
-            int rotation_direction = (heading_difference_from_playground > 0) ? 1 : -1;
-            rotate(turn_speed, rotation_direction);
-            break;
-          }
-          else
-          {
-            move(0, 0); // Stop movement
-            wait1Msec(100); // Small delay to allow for any physical rotation to complete
-          }
-          current_state = prevState; // Return to the previous state to try again
-          prevState = IDLE; // Reset prevState to default
+          rotate(0, 0);
+          current_state = prev_state; // Return to the previous state to try again
+          prev_state = IDLE; // Reset prev_state to default
         }
         break;
 

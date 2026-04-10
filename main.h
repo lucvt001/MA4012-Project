@@ -1,5 +1,3 @@
-#include "low_level_controls.h"
-
 // State machine states
 typedef enum {
   IDLE,
@@ -11,17 +9,10 @@ typedef enum {
   RECOVERY_FROM_BOUNDARY
 } State;
 
-// Return 0 for nothing, 1 for ball, 2 for robot
-// Used for front facing IR sensors
-int classify_object()
-{
-  return 0;
-}
-
 // Action to collect ball
 void start_ball_collector()
 {
-  motor[collectorServo] = 200;
+  motor[collectorServo] = 300;
 }
 
 void stop_ball_collector()
@@ -74,18 +65,39 @@ int get_current_heading()
   } else if (north && !east && !south && west) {
     return -45; // Northwest
   } else {
-    return 0; // Default to North if no valid combination is detected
+    return -1; // Default to North if no valid combination is detected
   }
 }
 
-// Action to align to deposit area using compass
-void align_to_deposit_area()
+// Translate back/forth
+// dir is 1 (forward) or -1 (backward)
+// speed is pwm value
+void move(int speed, int dir)
 {
-  return;
+  motor[leftMotor] = dir * speed;
+  motor[rightMotor] = dir * (speed + 4);
 }
 
-// Go back to starting point
-void go_home()
+// Rotate left/rigth
+// dir is 1 (right) or -1 (left)
+// speed is pwm value
+void rotate(int speed, int dir)
 {
-  return;
+  motor[leftMotor] = dir * speed;
+  motor[rightMotor] = -dir * (speed);
+}
+
+int is_ball_detected()
+{
+  int threshold = 500;
+  int result = 0;
+  int reading1 = SensorValue(distanceSensorLeft);
+  int reading2 = SensorValue(distanceSensorRight);
+
+  if (reading1 > threshold && reading2 < threshold)
+    result = -1; // Ball detected by distanceSensorLeft
+  else if (reading1 < threshold && reading2 > threshold)
+    result = 1; // Ball detected by distanceSensorRight
+
+  return result;
 }
