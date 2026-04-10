@@ -12,7 +12,7 @@ typedef enum {
 // Action to collect ball
 void start_ball_collector()
 {
-  motor[collectorServo] = 200;
+  motor[collectorServo] = 300;
 }
 
 void stop_ball_collector()
@@ -65,7 +65,7 @@ int get_current_heading()
   } else if (north && !east && !south && west) {
     return -45; // Northwest
   } else {
-    return 0; // Default to North if no valid combination is detected
+    return -1; // Default to North if no valid combination is detected
   }
 }
 
@@ -75,7 +75,7 @@ int get_current_heading()
 void move(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = dir * (speed + 2);
+  motor[rightMotor] = dir * (speed + 4);
 }
 
 // Rotate left/rigth
@@ -84,7 +84,7 @@ void move(int speed, int dir)
 void rotate(int speed, int dir)
 {
   motor[leftMotor] = dir * speed;
-  motor[rightMotor] = -dir * (speed + 2);
+  motor[rightMotor] = -dir * (speed);
 }
 
 int is_ball_detected()
