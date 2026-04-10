@@ -1,5 +1,5 @@
-#pragma config(Sensor, in7,    distanceSensor1, sensorAnalog)
-#pragma config(Sensor, in8,    distanceSensor2, sensorAnalog)
+#pragma config(Sensor, in7,    distanceSensorLeft, sensorAnalog)
+#pragma config(Sensor, in8,    distanceSensorRight, sensorAnalog)
 #pragma config(Sensor, dgtl1,  startingSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl2,  ballTriggerSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl4,  northPin,          sensorDigitalIn)

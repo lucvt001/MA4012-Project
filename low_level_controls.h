@@ -33,23 +33,15 @@ int is_ball_detected()
 {
   int threshold = 500;
   int result = 0;
-  int reading1 = SensorValue(distanceSensor1);
-  int reading2 = SensorValue(distanceSensor2);
+  int reading1 = SensorValue(distanceSensorLeft);
+  int reading2 = SensorValue(distanceSensorRight);
 
   if (reading1 > threshold && reading2 < threshold)
-    result = -1; // Ball detected by distanceSensor1
+    result = -1; // Ball detected by distanceSensorLeft
   else if (reading1 < threshold && reading2 > threshold)
-    result = 1; // Ball detected by distanceSensor2
+    result = 1; // Ball detected by distanceSensorRight
 
   return result;
-}
-
-bool are_both_distance_sensors_positive()
-{
-  int threshold = 300;
-  int reading1 = SensorValue(distanceSensor1);
-  int reading2 = SensorValue(distanceSensor2);
-  return reading1 > threshold && reading2 > threshold;  // Threshold value for ball collection confirmation
 }
 
 // Return true if collected, false otherwise
