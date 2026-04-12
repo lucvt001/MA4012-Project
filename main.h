@@ -90,14 +90,34 @@ void rotate(int speed, int dir)
 int is_ball_detected()
 {
   int threshold = 500;
+  int diff_threshold = 220; // Threshold for detecting a significant difference between the two sensors
   int result = 0;
   int reading1 = SensorValue(distanceSensorLeft);
   int reading2 = SensorValue(distanceSensorRight);
+  int reading_top = SensorValue(distanceSensorTop);
+  int diff1 = reading1 - reading_top;
+  int diff2 = reading2 - reading_top;
 
-  if (reading1 > threshold && reading2 < threshold)
+  if (reading1 > threshold && reading2 < threshold && diff1 > diff_threshold)
     result = -1; // Ball detected by distanceSensorLeft
-  else if (reading1 < threshold && reading2 > threshold)
+  else if (reading1 < threshold && reading2 > threshold && diff2 > diff_threshold)
     result = 1; // Ball detected by distanceSensorRight
-
+// Ball detected but not a significant difference, likely directly ahead
   return result;
+}
+
+int is_bot_detected()
+{
+  int threshold = 500;
+  int diff_threshold = 220; // Threshold for detecting a significant difference between the two sensors
+  int reading1 = SensorValue(distanceSensorLeft);
+  int reading2 = SensorValue(distanceSensorRight);
+  int reading_top = SensorValue(distanceSensorTop);
+  int diff1 = reading1 - reading_top;
+  int diff2 = reading2 - reading_top;
+
+  if ((reading1 > threshold || reading2 > threshold) && (diff1 < diff_threshold || diff2 < diff_threshold))
+    return 1; // Bot detected
+  else
+    return 0; // No bot detected
 }
