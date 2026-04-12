@@ -1,5 +1,6 @@
 #pragma config(Sensor, in7,    distanceSensorLeft, sensorAnalog)
-#pragma config(Sensor, in6,    distanceSensorRight, sensorAnalog)
+#pragma config(Sensor, in8,    distanceSensorRight, sensorAnalog)
+#pragma config(Sensor, in6,    distanceSensorTop, sensorAnalog)
 #pragma config(Sensor, dgtl1,  leftBiasedStartSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl2,  rightBiasedStartSwitch, sensorDigitalIn)
 #pragma config(Sensor, dgtl3,  ballTriggerSwitch, sensorDigitalIn)
@@ -143,7 +144,20 @@ task main()
           current_state = COLLECTING;
           break;
         }
+        else if(is_bot_detected())
+        {
+          timer_started = false;  // Reset timer for next use
+          move(100, -1); // Move backwards to get away from the detected bot
+          break;
+        }
 
+         if (SensorValue(front_right) == 0 || SensorValue(front_left) == 0)
+        {
+          current_state = RECOVERY_FROM_BOUNDARY;
+          prev_state = SEARCHING;
+          timer_started = false;  // Reset timer for next use
+          break;
+        }
         // Entry point for searching state, start spinning to find the ball
         if (!timer_started)
         {
@@ -237,43 +251,42 @@ task main()
        */
       case NAVIGATING_TO_DEPOSIT:
         if (SensorValue(ballTriggerSwitch) == 0)
-          stop_ball_collector();
+           stop_ball_collector();
 
-        current_heading = get_current_heading();
-        if (current_heading == -1) {
-          current_heading = playground_heading; // If heading is invalid, assume we're facing the playground direction
-          rotate(0, 0);
+        if (SensorValue(back_right) == 0 && SensorValue(back_left) == 0)
+        {
+          move(0, 0); // Stop
+          current_state = DEPOSITING;
           break;
         }
-
-        int heading_difference_from_playground = (playground_heading - current_heading + 180) % 360 - 180; // Calculate difference and normalize to [-180, 180]
-        if (heading_difference_from_playground != 0)
+        // We ignore the compass here because not hitting the wall is more important.
+        if (SensorValue(back_right) == 0) // Hit right boundary
         {
-          // Rotate in the direction of the smaller angle
-          int rotation_direction = (heading_difference_from_playground > 0) ? 1 : -1;
-          rotate(35, rotation_direction);
+          rotate(turn_speed, 1);
+        }
+        else if (SensorValue(back_left) == 0) // Hit left boundary
+        {
+          rotate(turn_speed, -1);
         }
         else
         {
-          rotate(0, 0); // Stop rotation if we're within the acceptable heading range
-        }
+          current_heading = get_current_heading();
+          if (current_heading == -1) {
+            current_heading = playground_heading;
+          }
 
-        if (SensorValue(back_right) != 0 && SensorValue(back_left) != 0)
-        {
-          move(100, -1); // Move backwards
-        }
-        else if(SensorValue(back_right) == 0 && SensorValue(back_left) != 0)
-        {
-          rotate(turn_speed, 1); // Rotate right
-        }
-        else if(SensorValue(back_right) != 0 && SensorValue(back_left) == 0)
-        {
-          rotate(turn_speed, -1); // Rotate left
-        }
-        else
-        {
-          move(0, 0); // Stop if not against the wall
-          current_state = DEPOSITING;
+          int diff = (playground_heading - current_heading + 180) % 360 - 180;
+          if (abs(diff)!=0)
+          {
+            // Rotate to align
+            int rotation_direction = (diff > 0) ? 1 : -1;
+            rotate(35, rotation_direction);
+          }
+          else
+          {
+            // Perfectly aligned, move forward
+            move(100, -1);
+          }
         }
         break;
 
@@ -286,10 +299,13 @@ task main()
         {
           clearTimer(T1);
           timer_started = true;
+          start_ball_collector(); // Keep the collector running to ensure the ball is fully in the mechanism before releasing
+          wait1Msec(1500); // Wait for the ball to be fully in the mechanism
+          stop_ball_collector();
           open_ball_release();
         }
 
-        if (time1[T1] >= 1500) // Wait for seconds to ensure the ball is released
+        if (time1[T1] >= 4000) // Wait for seconds to ensure the ball is released
         {
           timer_started = false;  // Reset timer for next use
           close_ball_release();
